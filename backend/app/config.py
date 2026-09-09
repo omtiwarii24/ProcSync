@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:15433/pilotbridge"
@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-004"
     chat_model: str = "gemini-2.0-flash"
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
 
 settings = Settings()

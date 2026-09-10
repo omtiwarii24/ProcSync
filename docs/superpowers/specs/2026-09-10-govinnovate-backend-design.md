@@ -128,13 +128,13 @@ Enums reuse and extend the domain enums from prior work (connectivity/power/terr
 
 ### Evidence → Validation
 
-- **evidence_items** — pilot_id, milestone_id (nullable), type: `KPI_MEASUREMENT / COST_RECORD / PHOTO / LOG / REPORT`, file_path, uploaded_by, status: `UNVERIFIED → AI_EXTRACTED → EVALUATOR_VERIFIED | REJECTED`, extracted_data (JSON), ai_confidence (float), source_trace (JSON), safety_critical (bool).
+- **evidence_items** — pilot_id, milestone_id (nullable), type: `KPI_MEASUREMENT / COST_RECORD / PHOTO / LOG / REPORT`, file_path, uploaded_by, status: `UNVERIFIED → AI_EXTRACTED → EVALUATOR_VERIFIED | REJECTED`, extracted_data (JSON), ai_confidence (float), source_trace (JSON), safety_critical (bool — set by the Pilot Manager at milestone/KPI definition during pilot design; evidence linked to a safety-critical milestone inherits the flag; an Evaluator may escalate it to true at validation; it is never set by the uploading startup and never by AI).
 - **validations** — evidence_item_id, validator_id, verdict (`VERIFIED / REJECTED`), method, auto_approved (bool).
 
 ### Passport → Decision → Route
 
 - **passports** — pilot_id (unique, 1:1), status: `IN_PROGRESS → FINALIZED`, readiness: `READY / CONDITIONAL / NOT_READY`, sections (JSON): gate1_result, gate2_result (incl. risk-equivalent findings), kpis, results, validation_summary, cost, infrastructure_conditions, data_requirements, ip_licensing, security_compliance, risks, lessons_learned, replication_guidance, failure_conditions. Human-readable status at every stage; no opaque AI score.
-- **decisions** — passport_id, value (`STOP / ADAPT / REVALIDATE / SCALE` only), score_breakdown (JSON, deterministic), explanation_draft (AI-drafted, labeled), authorized_by (nullable), authorized_at (nullable), authorization_justification. **Decision has no effect until authorized_by is set.**
+- **decisions** — passport_id, value (`STOP / ADAPT / REVALIDATE / SCALE` only), score_breakdown (JSON, deterministic), explanation_draft (AI-drafted, labeled), authorization_status: `PENDING / APPROVED / REJECTED` (default PENDING), authorized_by (nullable), authorized_at (nullable), authorization_justification. **Decision has no effect until authorization_status = APPROVED.** The API always returns the computed value and its authorization status as separate fields so the frontend must render "system recommendation (pending authorization)" distinctly from "authorized decision" — a bare SCALE is never ambiguous.
 - **procurement_routes** — decision_id, route: `REQUEST_MORE_EVIDENCE / SANDBOX_EXTENSION / TARGETED_FOLLOW_UP_PILOT / TRIAL_ORDER / DIRECT_PROCUREMENT / PHASED_PROCUREMENT`, justification, selected_by. **Row can only be created when decision.value = SCALE** (service-level assertion + DB check constraint).
 
 ### Replication
@@ -187,7 +187,7 @@ Three enforcement layers:
 
 **auth** — register, login, me.
 
-**orgs** — `GET/PUT /startups/me`; `GET /departments`, `GET /departments/{id}` (context profile visible — feeds replication); ADMIN: `POST /departments`.
+**orgs** — `GET/PUT /startups/me`; `GET /departments`, `GET /departments/{id}` (context profile visible — feeds replication); ADMIN: `POST /departments`, `PATCH /departments/{id}/context` (update context profile — real gap for production, low demo priority, cheap to include).
 
 **challenges** — DEPT_OWNER: `POST /challenges`, `PATCH /challenges/{id}`, `POST /challenges/{id}/publish`, `POST /challenges/{id}/close`, `GET /challenges/{id}/proposals`; criteria CRUD `POST /challenges/{id}/criteria`; Startup: `GET /challenges` (browse, filter domain/status), `GET /challenges/{id}`.
 
@@ -201,7 +201,7 @@ Three enforcement layers:
 
 **decisions** — `POST /pilots/{id}/decision/compute` (deterministic engine + AI-drafted explanation, labeled); PROCUREMENT_AUTHORITY: `POST /decisions/{id}/authorize` (approve/reject + justification → immutable audit); if SCALE: `POST /decisions/{id}/route`.
 
-**replication** — govt roles: `POST /replication/requests` (problem + context) → matched passports via semantic search; `POST /replication/requests/{id}/analyze` (5-dimension comparison + reuse/revalidate split + recommendation); `GET /replication/analyses/{id}`; `POST /replication/analyses/{id}/resolve` (human decision).
+**replication** — govt roles: `POST /replication/requests` (problem + context) → matched passports via semantic search; `POST /replication/requests/{id}/analyze` (5-dimension comparison + reuse/revalidate split + recommendation); `GET /replication/analyses/{id}`; `POST /replication/analyses/{id}/resolve` (human decision). **Integration point (deferred, honest-answer-if-asked):** resolving a replication analysis with ACCEPT does not yet auto-create a follow-up pilot — the natural handoff is "next integration point" wiring `replication_analyses.resolution → proposals/challenges` creation. MVP demo stops at the recommendation + human resolution screen.
 
 **payments** — `POST /milestones/{id}/invoice` (STARTUP), `POST /payments/{id}/approve` (FINANCE, requires VERIFIED milestone), `POST /payments/{id}/disburse`, `POST /payments/{id}/reject`.
 
@@ -296,4 +296,4 @@ Phases 1–5 deterministic foundations; 6–9 the AI/differentiator layer. Each 
 
 ## 14. Explicitly Out of Scope (P2, deck §30)
 
-Real payment automation; GeM integration; predictive milestone-risk models; failure-pattern clustering; government-wide knowledge graph; long-term post-scale monitoring; frontend (separate spec).
+Real payment automation; GeM integration; predictive milestone-risk models; failure-pattern clustering; government-wide knowledge graph; long-term post-scale monitoring; frontend (separate spec); notifications (in-app/email); AI-failure retry UI (API returns retryable 503; frontend polling/retry is a frontend concern); replication-resolve → auto pilot creation (documented as next integration point in §6).

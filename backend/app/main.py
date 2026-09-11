@@ -8,7 +8,7 @@ from app.core.errors import AppError
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="GovInnovate API",
+        title="PROCSYNC API",
         version="0.1.0",
         description="Startup-friendly innovation procurement engine — SIH26136",
     )

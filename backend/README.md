@@ -1,4 +1,4 @@
-# GovInnovate Backend
+PROCSYNC Backend
 
 FastAPI + PostgreSQL 16 (pgvector) backend for SIH26136 — startup-friendly innovation procurement engine. Spec: `docs/superpowers/specs/2026-09-10-govinnovate-backend-design.md`.
 

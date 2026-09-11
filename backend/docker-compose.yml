@@ -1,0 +1,20 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: govinnovate-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: govinnovate
+    ports:
+      - "15433:5432"
+    volumes:
+      - govinnovate_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d govinnovate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  govinnovate_pgdata:
